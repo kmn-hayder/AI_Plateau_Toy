@@ -13,7 +13,7 @@ But AI is not a purely algorithmic object. It is a capital-embedded production t
 1. **System level:** What does aggregate AI capability look like under binding physical and economic constraints?
 2. **Firm level:** How much should a given enterprise invest in AI before incremental gains turn net negative?
 
-The two models below answer these questions in sequence. Model 1 produces a capability ceiling $A^*$. Model 2 (static) and Model 2D (dynamic) take $A^*$ as input and return optimal firm-level investment. The dynamic version is structurally analogous to Card's optimal-schooling model from labor economics, extended to capital-stock accumulation under depreciation and time-to-build.
+The two models below answer these questions in sequence. Model 1 produces a capability ceiling A^*. Model 2 (static) and Model 2D (dynamic) take A^* as input and return optimal firm-level investment. The dynamic version is structurally analogous to Card's optimal-schooling model from labor economics, extended to capital-stock accumulation under depreciation and time-to-build.
 
 ---
 
