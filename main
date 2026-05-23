@@ -1,0 +1,139 @@
+library(ggplot2)
+library(patchwork)
+
+A_star  <- 1.00
+kappa   <- 0.50
+X0      <- 5.00
+beta    <- 1.00
+r       <- 0.20
+k_curv  <- 0.50
+gamma   <- 0.50
+rho     <- 0.10
+delta   <- 0.35
+tau     <- 3.00
+
+
+A_of_X        <- function(X) A_star / (1 + exp(-kappa * (X - X0)))
+V_of_I        <- function(I) beta * A_star * I - 0.5 * k_curv * I^2 - r * I - 0.5 * gamma * I^2
+I_star_static <- (beta * A_star - r) / (k_curv + gamma)
+K_star_dyn    <- function(a) pmax(0, (beta * a - (rho + delta) * r) /
+                                    (k_curv + gamma * delta * (rho + delta)))
+I_star_dyn    <- function(a) delta * K_star_dyn(a)
+I_star_stat   <- function(a) pmax(0, (beta * a - r) / (k_curv + gamma))
+ttb_wedge     <- function(t) exp(-rho * t)
+
+base_theme <- theme_minimal(base_size = 10, base_family = "sans") +
+  theme(
+    plot.title       = element_text(face = "plain", size = 10, hjust = 0,
+                                    margin = margin(b = 6)),
+    axis.title       = element_text(face = "plain", size = 8.5, color = "grey20"),
+    axis.text        = element_text(size = 7.5),
+    axis.ticks       = element_line(color = "grey70", linewidth = 0.3),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_line(color = "grey92", linewidth = 0.3),
+    legend.position  = "none",
+    plot.margin      = margin(8, 10, 8, 10)
+  )
+
+X_seq <- seq(0, 15, length.out = 300)
+dfA   <- data.frame(x = X_seq, y = A_of_X(X_seq))
+
+pA <- ggplot(dfA, aes(x, y)) +
+  geom_hline(yintercept = A_star, linetype = "dashed",
+             color = "grey55", linewidth = 0.45) +
+  geom_line(color = "#2C3E50", linewidth = 0.9) +
+  annotate("text", x = 15, y = A_star, label = "A*",
+           hjust = 1.2, vjust = -0.5, size = 2.8, color = "grey40",
+           family = "sans") +
+  labs(
+    title = "A.  Capability plateau",
+    x     = "Cumulative effective compute",
+    y     = "AI capability (normalised)"
+  ) +
+  base_theme
+
+I_seq <- seq(0, 2.5 * I_star_static, length.out = 300)
+dfB   <- data.frame(x = I_seq, y = V_of_I(I_seq))
+
+vlines_B <- data.frame(
+  xint  = c(I_star_static, 2 * I_star_static),
+  label = c("I*", "I_max")
+)
+
+pB <- ggplot(dfB, aes(x, y)) +
+  geom_hline(yintercept = 0, color = "grey75", linewidth = 0.3) +
+  geom_vline(data = vlines_B, aes(xintercept = xint),
+             linetype = "dashed", color = "grey55", linewidth = 0.45) +
+  geom_text(data = vlines_B,
+            aes(x = xint, y = Inf, label = label),
+            hjust = -0.15, vjust = 1.6, size = 2.8, color = "grey40",
+            family = "sans", inherit.aes = FALSE) +
+  geom_line(color = "#2C3E50", linewidth = 0.9) +
+  labs(
+    title = "B.  Firm net value V(I)",
+    x     = "Investment I",
+    y     = "Net value V(I)"
+  ) +
+  base_theme
+
+A_grid <- seq(0, 1.5, length.out = 200)
+dfC <- rbind(
+  data.frame(x = A_grid, y = I_star_stat(A_grid),
+             series = "Static (no time cost)"),
+  data.frame(x = A_grid, y = I_star_dyn(A_grid),
+             series = "Dynamic (depreciation + delay)")
+)
+
+pC <- ggplot(dfC, aes(x, y, color = series)) +
+  geom_line(linewidth = 0.9) +
+  scale_color_manual(values = c(
+    "Static (no time cost)"          = "#2980B9",
+    "Dynamic (depreciation + delay)" = "#C0392B"
+  )) +
+  labs(
+    title  = "C.  Optimal investment vs capability ceiling",
+    x      = "Capability ceiling A*",
+    y      = "Optimal investment I*",
+    color  = NULL
+  ) +
+  base_theme +
+  theme(
+    legend.position  = "bottom",
+    legend.text      = element_text(size = 8),
+    legend.key.width = unit(1.2, "cm")
+  )
+
+tau_seq <- seq(0, 6, length.out = 300)
+dfD     <- data.frame(x = tau_seq, y = ttb_wedge(tau_seq))
+
+pD <- ggplot(dfD, aes(x, y)) +
+  geom_vline(xintercept = tau, linetype = "dashed",
+             color = "grey55", linewidth = 0.45) +
+  geom_text(aes(x = tau, y = Inf,
+                label = paste0("\u03c4 = ", tau, " yr")),
+            hjust = -0.15, vjust = 1.6, size = 2.8, color = "grey40",
+            family = "sans") +
+  geom_line(color = "#2C3E50", linewidth = 0.9) +
+  labs(
+    title = "D.  Time-to-build discount",
+    x     = "Lead time \u03c4 (years)",
+    y     = "Discount factor on committed capital"
+  ) +
+  base_theme
+
+
+combined <- (pA | pB) / (pC | pD) +
+  plot_annotation(
+    title   = "AI Under Constraint: Capability Plateau and Optimal Investment",
+    caption = "Modelling values are illustrative rather than empirical.",
+    theme   = theme(
+      plot.title   = element_text(face = "plain", size = 13,
+                                  family = "sans", hjust = 0,
+                                  margin = margin(b = 10)),
+      plot.caption = element_text(face = "italic", size = 8,
+                                  family = "sans", color = "black",
+                                  hjust = 1, margin = margin(t = 10))
+    )
+  )
+
+print(combined)
